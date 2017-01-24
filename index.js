@@ -17,16 +17,22 @@ var app = {
                 y: 29
             },
             body: [],
+            point: {
+                x: 0,
+                y: 0
+            },
             growth: 3,
-            direction: "north"
+            curDirection: "north",
+            newDirection: "north",
         },
-        updateFreq: 5,
+        updateFreq: 8,
         intervalId: 0
         
     },
     startGame: function(){
         console.log("game started");
         app.drawGrid();
+        app.drawPoint();
         app.drawPlayer(app.settings.player.head.x, app.settings.player.head.y);
         app.setControlEventListener();
         app.settings.intervalId = setInterval( app.updateLoop, ( 1000 / app.settings.updateFreq ) );
@@ -38,16 +44,16 @@ var app = {
         console.log(event.key);
         switch( event.key ) {
             case "w":
-                app.settings.player.direction = "north";
+                app.settings.player.newDirection = "north";
                 break;
             case "a":
-                app.settings.player.direction = "west";
+                app.settings.player.newDirection = "west";
                 break;
             case "s":
-                app.settings.player.direction = "south";
+                app.settings.player.newDirection = "south";
                 break;
             case "d":
-                app.settings.player.direction = "east";
+                app.settings.player.newDirection = "east";
                 break;
         }
     },
@@ -55,8 +61,9 @@ var app = {
         console.log("update loop");
         //app.drawPoint();
         //player moves
-        app.updatePlayer( app.settings.player.direction );
+        app.updatePlayer( app.settings.player.newDirection );
         app.checkHit();
+        app.checkPoint();
         //check point intersect with head
         //if cell has class point and playerHead point was hit
             //increase size if true
@@ -64,8 +71,19 @@ var app = {
         //
         //
     },
-    updatePlayer: function( direction ) {
-        app.movePlayer( direction );
+    checkPoint: function(){
+        var player = app.settings.player.body[0];
+        var point = app.settings.player.point;
+        if( player.x == point.x && player.y == point.y ) {
+            console.log("ate point");
+            app.settings.player.growth += 1;
+            $(".point").removeClass("point");
+            app.drawPoint();
+        }
+        
+    },
+    updatePlayer: function( newDirection ) {
+        app.movePlayer( app.settings.player.curDirection, newDirection );
         app.drawPlayer( app.settings.player.head.x, app.settings.player.head.y );
     },
     checkHit: function(){
@@ -82,31 +100,48 @@ var app = {
     },
     checkSelfHit: function() {
         //if the players head hits its body, end game.
-        for( i = 0; i < app.settings.player.body.length - 1; i++ ) {
+        for( i = 1; i < app.settings.player.body.length; i++ ) {
             if( $("#x" + app.settings.player.body[i].x + "-y" + app.settings.player.body[i].y).hasClass("head") ) {
                 app.gameOver();
             }
         }
     },
-    movePlayer: function( direction ){
-        console.log(direction);
-        switch( direction ) {
+    movePlayer: function( curDirection, newDirection ){
+        console.log(curDirection, newDirection);
+        switch( newDirection ) {
             case "north":
+                if(curDirection == "south" ) {
+                    return;
+                }
                 app.settings.player.head.y -= 1;
+                app.settings.player.curDirection = "north";
                 break;
             case "east":
+                if(curDirection == "west" ) {
+                    return;
+                }
                 app.settings.player.head.x += 1;
+                app.settings.player.curDirection = "east";
                 break;
             case "south":
+                if(curDirection == "north" ) {
+                    return;
+                }
                 app.settings.player.head.y += 1;
+                app.settings.player.curDirection = "south";
                 break;
             case "west":
+                if(curDirection == "east" ) {
+                    return;
+                }
                 app.settings.player.head.x -= 1;
+                app.settings.player.curDirection = "west";
+                break;
         }
     },
     drawPlayer: function(x, y) {
         console.log( app.settings.player.body );
-        app.settings.player.body.push( {"x": x, "y": y} );
+        app.settings.player.body.unshift( {"x": x, "y": y} );
         //remove head class
         $(".player").removeClass("head");
         //add player class to location
@@ -118,8 +153,8 @@ var app = {
         if( $(".player").length > app.settings.player.growth ) {
             //$("#x"+app.settings.player.tail.x+"-y"+app.settings.player.tail.y).removeClass("player");
             var body = app.settings.player.body;
-            $("#x"+body[0].x+"-y"+body[0].y).removeClass("player");
-            body.shift();
+            $("#x"+body[body.length-1].x+"-y"+body[body.length-1].y).removeClass("player");
+            body.pop();
         }
     },
     drawGrid: function(){
@@ -135,6 +170,8 @@ var app = {
         var x = Math.floor( Math.random() * app.settings.grid.size );
         var y = Math.floor( Math.random() * app.settings.grid.size );
         console.log("Drawing point","x:" + x, "y:" + y);
+        app.settings.player.point.x = x;
+        app.settings.player.point.y = y;
         $("#x"+x+"-y"+y).addClass("point");
     },
 
