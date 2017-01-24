@@ -1,5 +1,6 @@
 var app = {
     settings: {
+        paused: false,
         grid: {
             //size defines the length and width of the grid.
             size: 30,
@@ -25,23 +26,31 @@ var app = {
             curDirection: "north",
             newDirection: "north",
         },
-        updateFreq: 8,
-        intervalId: 0
-        
+        score: 0,
+        updateFreq: 20,
+        intervalId: 0,
+        oldIntervalId: 0
     },
+    reset: {},
     startGame: function(){
         console.log("game started");
+        app._reset = app.settings;
         app.drawGrid();
         app.drawPoint();
         app.drawPlayer(app.settings.player.head.x, app.settings.player.head.y);
         app.setControlEventListener();
         app.settings.intervalId = setInterval( app.updateLoop, ( 1000 / app.settings.updateFreq ) );
     },
+    resetGame: function() {
+        app.settings = app._reset;
+        $("#grid").empty();
+        app.startGame();
+    },
     setControlEventListener: function() {
         $(document).on( "keypress", app.setControlEvent );
     },
     setControlEvent: function( event ) {
-        console.log(event.key);
+        console.log("keypress", event);
         switch( event.key ) {
             case "w":
                 app.settings.player.newDirection = "north";
@@ -55,7 +64,26 @@ var app = {
             case "d":
                 app.settings.player.newDirection = "east";
                 break;
+            case " ":
+                e.preventDefault();
+                if( app.settings.paused ) {
+                    app.resume();
+                }
+                else {
+                    app.pause();
+                }
+                break;
         }
+            
+    },
+    pause: function() {
+        app.settings.oldIntervalId = app.settings.intervalId;
+        clearTimeout( app.settings.intervalId );
+        app.settings.paused = true;
+    },
+    resume: function() {
+        app.settings.intervalId = setInterval( app.updateLoop, ( 1000 / app.settings.updateFreq ) );
+        app.settings.paused = false;
     },
     updateLoop: function(){
         console.log("update loop");
@@ -64,20 +92,19 @@ var app = {
         app.updatePlayer( app.settings.player.newDirection );
         app.checkHit();
         app.checkPoint();
-        //check point intersect with head
-        //if cell has class point and playerHead point was hit
-            //increase size if true
-            //add point
-        //
-        //
+        app.updateScore();
+    },
+    updateScore: function() {
+        $("#score-text").text( app.settings.score );
     },
     checkPoint: function(){
         var player = app.settings.player.body[0];
         var point = app.settings.player.point;
         if( player.x == point.x && player.y == point.y ) {
             console.log("ate point");
-            app.settings.player.growth += 1;
+            app.settings.player.growth += 3;
             $(".point").removeClass("point");
+            app.settings.score++;
             app.drawPoint();
         }
         
